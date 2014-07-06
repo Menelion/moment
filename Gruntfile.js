@@ -210,9 +210,7 @@ module.exports = function (grunt) {
         // code style
         'jshint', 'jscs',
         // node tests
-        'test:node',
-        // sauce tests
-        'check-sauce-creds', 'test:travis-sauce-browser'
+        'test:node'
     ]);
 
     // Task to be run when releasing a new version
