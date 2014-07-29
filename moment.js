@@ -25,8 +25,8 @@
         SECOND = 5,
         MILLISECOND = 6,
 
-        // internal storage for language config files
-        languages = {},
+        // internal storage for locale config files
+        locales = {},
 
         // moment internal properties
         momentProperties = {
@@ -39,7 +39,7 @@
             _isUTC : null,
             _offset : null,  // optional. Combine with _isUTC
             _pf : null,
-            _lang : null  // optional
+            _locale : null  // optional
         },
 
         // check for nodeJS
@@ -162,10 +162,10 @@
                 return this.month() + 1;
             },
             MMM  : function (format) {
-                return this.lang().monthsShort(this, format);
+                return this.localeData().monthsShort(this, format);
             },
             MMMM : function (format) {
-                return this.lang().months(this, format);
+                return this.localeData().months(this, format);
             },
             D    : function () {
                 return this.date();
@@ -177,13 +177,13 @@
                 return this.day();
             },
             dd   : function (format) {
-                return this.lang().weekdaysMin(this, format);
+                return this.localeData().weekdaysMin(this, format);
             },
             ddd  : function (format) {
-                return this.lang().weekdaysShort(this, format);
+                return this.localeData().weekdaysShort(this, format);
             },
             dddd : function (format) {
-                return this.lang().weekdays(this, format);
+                return this.localeData().weekdays(this, format);
             },
             w    : function () {
                 return this.week();
@@ -229,10 +229,10 @@
                 return this.isoWeekday();
             },
             a    : function () {
-                return this.lang().meridiem(this.hours(), this.minutes(), true);
+                return this.localeData().meridiem(this.hours(), this.minutes(), true);
             },
             A    : function () {
-                return this.lang().meridiem(this.hours(), this.minutes(), false);
+                return this.localeData().meridiem(this.hours(), this.minutes(), false);
             },
             H    : function () {
                 return this.hours();
@@ -290,6 +290,8 @@
             }
         },
 
+        deprecations = {},
+
         lists = ['months', 'monthsShort', 'weekdays', 'weekdaysShort', 'weekdaysMin'];
 
     // Pick the first defined of two or three arguments. dfl comes from
@@ -319,21 +321,29 @@
         };
     }
 
+    function printMsg(msg) {
+        if (moment.suppressDeprecationWarnings === false &&
+                typeof console !== 'undefined' && console.warn) {
+            console.warn("Deprecation warning: " + msg);
+        }
+    }
+
     function deprecate(msg, fn) {
         var firstTime = true;
-        function printMsg() {
-            if (moment.suppressDeprecationWarnings === false &&
-                    typeof console !== 'undefined' && console.warn) {
-                console.warn('Deprecation warning: ' + msg);
-            }
-        }
         return extend(function () {
             if (firstTime) {
-                printMsg();
+                printMsg(msg);
                 firstTime = false;
             }
             return fn.apply(this, arguments);
         }, fn);
+    }
+
+    function deprecateSimple(name, msg) {
+        if (!deprecations[name]) {
+            printMsg(msg);
+            deprecations[name] = true;
+        }
     }
 
     function padToken(func, count) {
@@ -343,7 +353,7 @@
     }
     function ordinalizeToken(func, period) {
         return function (a) {
-            return this.lang().ordinal(func.call(this, a), period);
+            return this.localeData().ordinal(func.call(this, a), period);
         };
     }
 
@@ -362,7 +372,7 @@
         Constructors
     ************************************/
 
-    function Language() {
+    function Locale() {
     }
 
     // Moment prototype object
@@ -401,6 +411,8 @@
             years * 12;
 
         this._data = {};
+
+        this._locale = moment.localeData();
 
         this._bubble();
     }
@@ -487,7 +499,23 @@
         return res;
     }
 
-    // helper function for _.addTime and _.subtractTime
+    // TODO: remove 'name' arg after deprecation is removed
+    function createAdder(direction, name) {
+        return function (val, period) {
+            var dur, tmp;
+            //invert the arguments, but complain about it
+            if (period !== null && !isNaN(+period)) {
+                deprecateSimple(name, "moment()." + name  + "(period, number) is deprecated. Please use moment()." + name + "(number, period).");
+                tmp = val; val = period; period = tmp;
+            }
+
+            val = typeof val === 'string' ? +val : val;
+            dur = moment.duration(val, period);
+            addOrSubtractDurationFromMoment(this, dur, direction);
+            return this;
+        };
+    }
+
     function addOrSubtractDurationFromMoment(mom, duration, isAdding, updateOffset) {
         var milliseconds = duration._milliseconds,
             days = duration._days,
@@ -575,7 +603,7 @@
 
         moment[field] = function (format, index) {
             var i, getter,
-                method = moment.fn._lang[field],
+                method = moment._locale[field],
                 results = [];
 
             if (typeof format === 'number') {
@@ -585,7 +613,7 @@
 
             getter = function (i) {
                 var m = moment().utc().set(setter, i);
-                return method.call(moment.fn._lang, m, format || '');
+                return method.call(moment._locale, m, format || '');
             };
 
             if (index != null) {
@@ -670,8 +698,48 @@
         return m._isValid;
     }
 
-    function normalizeLanguage(key) {
+    function normalizeLocale(key) {
         return key ? key.toLowerCase().replace('_', '-') : key;
+    }
+
+    // pick the locale from the array
+    // try ['en-au', 'en-gb'] as 'en-au', 'en-gb', 'en', as in move through the list trying each
+    // substring from most specific to least, but move to the next array item if it's a more specific variant than the current root
+    function chooseLocale(names) {
+        var i = 0, j, next, locale, split;
+
+        while (i < names.length) {
+            split = normalizeLocale(names[i]).split('-');
+            j = split.length;
+            next = normalizeLocale(names[i + 1]);
+            next = next ? next.split('-') : null;
+            while (j > 0) {
+                locale = loadLocale(split.slice(0, j).join('-'));
+                if (locale) {
+                    return locale;
+                }
+                if (next && next.length >= j && compareArrays(split, next, true) >= j - 1) {
+                    //the next array item is better than a shallower substring of this one
+                    break;
+                }
+                j--;
+            }
+            i++;
+        }
+        return null;
+    }
+
+    function loadLocale(name) {
+        var oldLocale = null;
+        if (!locales[name] && hasModule) {
+            try {
+                oldLocale = moment.locale();
+                require('./locale/' + name);
+                // because defineLocale currently also sets the global locale, we want to undo that for lazy loaded locales
+                moment.locale(oldLocale);
+            } catch (e) { }
+        }
+        return locales[name];
     }
 
     // Return a moment from input, that is local/utc/zone equivalent to model.
@@ -681,11 +749,11 @@
     }
 
     /************************************
-        Languages
+        Locale
     ************************************/
 
 
-    extend(Language.prototype, {
+    extend(Locale.prototype, {
 
         set : function (config) {
             var prop, i;
@@ -769,9 +837,9 @@
         _longDateFormat : {
             LT : 'h:mm A',
             L : 'MM/DD/YYYY',
-            LL : 'MMMM D YYYY',
-            LLL : 'MMMM D YYYY LT',
-            LLLL : 'dddd, MMMM D YYYY LT'
+            LL : 'MMMM D, YYYY',
+            LLL : 'MMMM D, YYYY LT',
+            LLLL : 'dddd, MMMM D, YYYY LT'
         },
         longDateFormat : function (key) {
             var output = this._longDateFormat[key];
@@ -868,78 +936,6 @@
         }
     });
 
-    // Loads a language definition into the `languages` cache.  The function
-    // takes a key and optionally values.  If not in the browser and no values
-    // are provided, it will load the language file module.  As a convenience,
-    // this function also returns the language values.
-    function loadLang(key, values) {
-        values.abbr = key;
-        if (!languages[key]) {
-            languages[key] = new Language();
-        }
-        languages[key].set(values);
-        return languages[key];
-    }
-
-    // Remove a language from the `languages` cache. Mostly useful in tests.
-    function unloadLang(key) {
-        delete languages[key];
-    }
-
-    // Determines which language definition to use and returns it.
-    //
-    // With no parameters, it will return the global language.  If you
-    // pass in a language key, such as 'en', it will return the
-    // definition for 'en', so long as 'en' has already been loaded using
-    // moment.lang.
-    function getLangDefinition(key) {
-        var i = 0, j, lang, next, split,
-            get = function (k) {
-                if (!languages[k] && hasModule) {
-                    try {
-                        require('./lang/' + k);
-                    } catch (e) { }
-                }
-                return languages[k];
-            };
-
-        if (!key) {
-            return moment.fn._lang;
-        }
-
-        if (!isArray(key)) {
-            //short-circuit everything else
-            lang = get(key);
-            if (lang) {
-                return lang;
-            }
-            key = [key];
-        }
-
-        //pick the language from the array
-        //try ['en-au', 'en-gb'] as 'en-au', 'en-gb', 'en', as in move through the list trying each
-        //substring from most specific to least, but move to the next array item if it's a more specific variant than the current root
-        while (i < key.length) {
-            split = normalizeLanguage(key[i]).split('-');
-            j = split.length;
-            next = normalizeLanguage(key[i + 1]);
-            next = next ? next.split('-') : null;
-            while (j > 0) {
-                lang = get(split.slice(0, j).join('-'));
-                if (lang) {
-                    return lang;
-                }
-                if (next && next.length >= j && compareArrays(split, next, true) >= j - 1) {
-                    //the next array item is better than a shallower substring of this one
-                    break;
-                }
-                j--;
-            }
-            i++;
-        }
-        return moment.fn._lang;
-    }
-
     /************************************
         Formatting
     ************************************/
@@ -975,10 +971,10 @@
     // format date using native date object
     function formatMoment(m, format) {
         if (!m.isValid()) {
-            return m.lang().invalidDate();
+            return m.localeData().invalidDate();
         }
 
-        format = expandFormat(format, m.lang());
+        format = expandFormat(format, m.localeData());
 
         if (!formatFunctions[format]) {
             formatFunctions[format] = makeFormatFunction(format);
@@ -987,11 +983,11 @@
         return formatFunctions[format](m);
     }
 
-    function expandFormat(format, lang) {
+    function expandFormat(format, locale) {
         var i = 5;
 
         function replaceLongDateFormatTokens(input) {
-            return lang.longDateFormat(input) || input;
+            return locale.longDateFormat(input) || input;
         }
 
         localFormattingTokens.lastIndex = 0;
@@ -1056,7 +1052,7 @@
             return parseTokenWord;
         case 'a':
         case 'A':
-            return getLangDefinition(config._l)._meridiemParse;
+            return config._locale._meridiemParse;
         case 'X':
             return parseTokenTimestampMs;
         case 'Z':
@@ -1128,7 +1124,7 @@
             break;
         case 'MMM' : // fall through to MMMM
         case 'MMMM' :
-            a = getLangDefinition(config._l).monthsParse(input);
+            a = config._locale.monthsParse(input);
             // if we didn't find a month name, mark the date as invalid.
             if (a != null) {
                 datePartArray[MONTH] = a;
@@ -1168,7 +1164,7 @@
         // AM / PM
         case 'a' : // fall through to A
         case 'A' :
-            config._isPm = getLangDefinition(config._l).isPM(input);
+            config._isPm = config._locale.isPM(input);
             break;
         // 24 HOUR
         case 'H' : // fall through to hh
@@ -1208,7 +1204,7 @@
         case 'dd':
         case 'ddd':
         case 'dddd':
-            a = getLangDefinition(config._l).weekdaysParse(input);
+            a = config._locale.weekdaysParse(input);
             // if we didn't get a weekday name, mark the date as invalid
             if (a != null) {
                 config._w = config._w || {};
@@ -1244,7 +1240,7 @@
     }
 
     function dayOfYearFromWeekInfo(config) {
-        var w, weekYear, week, weekday, dow, doy, temp, lang;
+        var w, weekYear, week, weekday, dow, doy, temp;
 
         w = config._w;
         if (w.GG != null || w.W != null || w.E != null) {
@@ -1259,9 +1255,8 @@
             week = dfl(w.W, 1);
             weekday = dfl(w.E, 1);
         } else {
-            lang = getLangDefinition(config._l);
-            dow = lang._week.dow;
-            doy = lang._week.doy;
+            dow = config._locale._week.dow;
+            doy = config._locale._week.doy;
 
             weekYear = dfl(w.gg, config._a[YEAR], weekOfYear(moment(), dow, doy).year);
             week = dfl(w.w, 1);
@@ -1384,13 +1379,12 @@
         config._pf.empty = true;
 
         // This array is used to make a Date, either with `new Date` or `Date.UTC`
-        var lang = getLangDefinition(config._l),
-            string = '' + config._i,
+        var string = '' + config._i,
             i, parsedInput, tokens, token, skipped,
             stringLength = string.length,
             totalParsedInputLength = 0;
 
-        tokens = expandFormat(config._f, lang).match(formattingTokens) || [];
+        tokens = expandFormat(config._f, config._locale).match(formattingTokens) || [];
 
         for (i = 0; i < tokens.length; i++) {
             token = tokens[i];
@@ -1573,13 +1567,13 @@
         return date;
     }
 
-    function parseWeekday(input, language) {
+    function parseWeekday(input, locale) {
         if (typeof input === 'string') {
             if (!isNaN(input)) {
                 input = parseInt(input, 10);
             }
             else {
-                input = language.weekdaysParse(input);
+                input = locale.weekdaysParse(input);
                 if (typeof input !== 'number') {
                     return null;
                 }
@@ -1594,11 +1588,11 @@
 
 
     // helper function for moment.fn.from, moment.fn.fromNow, and moment.duration.fn.humanize
-    function substituteTimeAgo(string, number, withoutSuffix, isFuture, lang) {
-        return lang.relativeTime(number || 1, !!withoutSuffix, string, isFuture);
+    function substituteTimeAgo(string, number, withoutSuffix, isFuture, locale) {
+        return locale.relativeTime(number || 1, !!withoutSuffix, string, isFuture);
     }
 
-    function relativeTime(posNegDuration, withoutSuffix, lang) {
+    function relativeTime(posNegDuration, withoutSuffix, locale) {
         var duration = moment.duration(posNegDuration).abs(),
             seconds = round(duration.as('s')),
             minutes = round(duration.as('m')),
@@ -1620,7 +1614,7 @@
 
         args[2] = withoutSuffix;
         args[3] = +posNegDuration > 0;
-        args[4] = lang;
+        args[4] = locale;
         return substituteTimeAgo.apply({}, args);
     }
 
@@ -1651,7 +1645,7 @@
             daysToDayOfWeek += 7;
         }
 
-        adjustedMoment = moment(mom).add('d', daysToDayOfWeek);
+        adjustedMoment = moment(mom).add(daysToDayOfWeek, 'd');
         return {
             week: Math.ceil(adjustedMoment.dayOfYear() / 7),
             year: adjustedMoment.year()
@@ -1681,12 +1675,14 @@
         var input = config._i,
             format = config._f;
 
+        config._locale = config._locale || moment.localeData(config._l);
+
         if (input === null || (format === undefined && input === '')) {
             return moment.invalid({nullInput: true});
         }
 
         if (typeof input === 'string') {
-            config._i = input = getLangDefinition().preparse(input);
+            config._i = input = config._locale.preparse(input);
         }
 
         if (moment.isMoment(input)) {
@@ -1706,12 +1702,12 @@
         return new Moment(config);
     }
 
-    moment = function (input, format, lang, strict) {
+    moment = function (input, format, locale, strict) {
         var c;
 
-        if (typeof(lang) === 'boolean') {
-            strict = lang;
-            lang = undefined;
+        if (typeof(locale) === "boolean") {
+            strict = locale;
+            locale = undefined;
         }
         // object construction must be done this way.
         // https://github.com/moment/moment/issues/1423
@@ -1719,7 +1715,7 @@
         c._isAMomentObject = true;
         c._i = input;
         c._f = format;
-        c._l = lang;
+        c._l = locale;
         c._strict = strict;
         c._isUTC = false;
         c._pf = defaultParsingFlags();
@@ -1774,12 +1770,12 @@
     };
 
     // creating with utc
-    moment.utc = function (input, format, lang, strict) {
+    moment.utc = function (input, format, locale, strict) {
         var c;
 
-        if (typeof(lang) === 'boolean') {
-            strict = lang;
-            lang = undefined;
+        if (typeof(locale) === "boolean") {
+            strict = locale;
+            locale = undefined;
         }
         // object construction must be done this way.
         // https://github.com/moment/moment/issues/1423
@@ -1787,7 +1783,7 @@
         c._isAMomentObject = true;
         c._useUTC = true;
         c._isUTC = true;
-        c._l = lang;
+        c._l = locale;
         c._i = input;
         c._f = format;
         c._strict = strict;
@@ -1864,8 +1860,8 @@
 
         ret = new Duration(duration);
 
-        if (moment.isDuration(input) && input.hasOwnProperty('_lang')) {
-            ret._lang = input._lang;
+        if (moment.isDuration(input) && input.hasOwnProperty('_locale')) {
+            ret._locale = input._locale;
         }
 
         return ret;
@@ -1900,32 +1896,82 @@
         return true;
     };
 
-    // This function will load languages and then set the global language.  If
+    moment.lang = deprecate(
+        "moment.lang is deprecated. Use moment.locale instead.",
+        function (key, value) {
+            return moment.locale(key, value);
+        }
+    );
+
+    // This function will load locale and then set the global locale.  If
     // no arguments are passed in, it will simply return the current global
-    // language key.
-    moment.lang = function (key, values) {
-        var r;
-        if (!key) {
-            return moment.fn._lang._abbr;
+    // locale key.
+    moment.locale = function (key, values) {
+        var data;
+        if (key) {
+            if (typeof(values) !== "undefined") {
+                data = moment.defineLocale(key, values);
+            }
+            else {
+                data = moment.localeData(key);
+            }
+
+            if (data) {
+                moment.duration._locale = moment._locale = data;
+            }
         }
-        if (values) {
-            loadLang(normalizeLanguage(key), values);
-        } else if (values === null) {
-            unloadLang(key);
-            key = 'en';
-        } else if (!languages[key]) {
-            getLangDefinition(key);
-        }
-        r = moment.duration.fn._lang = moment.fn._lang = getLangDefinition(key);
-        return r._abbr;
+
+        return moment._locale._abbr;
     };
 
-    // returns language data
-    moment.langData = function (key) {
-        if (key && key._lang && key._lang._abbr) {
-            key = key._lang._abbr;
+    moment.defineLocale = function (name, values) {
+        if (values !== null) {
+            values.abbr = name;
+            if (!locales[name]) {
+                locales[name] = new Locale();
+            }
+            locales[name].set(values);
+
+            // backwards compat for now: also set the locale
+            moment.locale(name);
+
+            return locales[name];
+        } else {
+            // useful for testing
+            delete locales[name];
+            return null;
         }
-        return getLangDefinition(key);
+    };
+
+    moment.langData = deprecate(
+        "moment.langData is deprecated. Use moment.localeData instead.",
+        function (key) {
+            return moment.localeData(key);
+        }
+    );
+
+    // returns locale data
+    moment.localeData = function (key) {
+        var locale;
+
+        if (key && key._locale && key._locale._abbr) {
+            key = key._locale._abbr;
+        }
+
+        if (!key) {
+            return moment._locale;
+        }
+
+        if (!isArray(key)) {
+            //short-circuit everything else
+            locale = loadLocale(key);
+            if (locale) {
+                return locale;
+            }
+            key = [key];
+        }
+
+        return chooseLocale(key);
     };
 
     // compare moment object
@@ -1987,7 +2033,7 @@
         },
 
         toString : function () {
-            return this.clone().lang('en').format('ddd MMM DD YYYY HH:mm:ss [GMT]ZZ');
+            return this.clone().locale('en').format("ddd MMM DD YYYY HH:mm:ss [GMT]ZZ");
         },
 
         toDate : function () {
@@ -2054,36 +2100,12 @@
 
         format : function (inputString) {
             var output = formatMoment(this, inputString || moment.defaultFormat);
-            return this.lang().postformat(output);
+            return this.localeData().postformat(output);
         },
 
-        add : function (input, val) {
-            var dur;
-            // switch args to support add('s', 1) and add(1, 's')
-            if (typeof input === 'string' && typeof val === 'string') {
-                dur = moment.duration(isNaN(+val) ? +input : +val, isNaN(+val) ? val : input);
-            } else if (typeof input === 'string') {
-                dur = moment.duration(+val, input);
-            } else {
-                dur = moment.duration(input, val);
-            }
-            addOrSubtractDurationFromMoment(this, dur, 1);
-            return this;
-        },
+        add : createAdder(1, 'add'),
 
-        subtract : function (input, val) {
-            var dur;
-            // switch args to support subtract('s', 1) and subtract(1, 's')
-            if (typeof input === 'string' && typeof val === 'string') {
-                dur = moment.duration(isNaN(+val) ? +input : +val, isNaN(+val) ? val : input);
-            } else if (typeof input === 'string') {
-                dur = moment.duration(+val, input);
-            } else {
-                dur = moment.duration(input, val);
-            }
-            addOrSubtractDurationFromMoment(this, dur, -1);
-            return this;
-        },
+        subtract : createAdder(-1, 'subtract'),
 
         diff : function (input, units, asFloat) {
             var that = makeAs(input, this),
@@ -2120,7 +2142,7 @@
         },
 
         from : function (time, withoutSuffix) {
-            return moment.duration({to: this, from: time}).lang(this.lang()._abbr).humanize(!withoutSuffix);
+            return moment.duration({to: this, from: time}).locale(this.locale()).humanize(!withoutSuffix);
         },
 
         fromNow : function (withoutSuffix) {
@@ -2139,7 +2161,7 @@
                     diff < 1 ? 'sameDay' :
                     diff < 2 ? 'nextDay' :
                     diff < 7 ? 'nextWeek' : 'sameElse';
-            return this.format(this.lang().calendar(format, this));
+            return this.format(this.localeData().calendar(format, this));
         },
 
         isLeapYear : function () {
@@ -2154,8 +2176,8 @@
         day : function (input) {
             var day = this._isUTC ? this._d.getUTCDay() : this._d.getDay();
             if (input != null) {
-                input = parseWeekday(input, this.lang());
-                return this.add(input - day, 'days');
+                input = parseWeekday(input, this.localeData());
+                return this.add(input - day, 'd');
             } else {
                 return day;
             }
@@ -2163,7 +2185,7 @@
 
         month : makeAccessor('Month', true),
 
-        startOf: function (units) {
+        startOf : function (units) {
             units = normalizeUnits(units);
             // the following switch intentionally omits break keywords
             // to utilize falling through the cases.
@@ -2208,7 +2230,7 @@
 
         endOf: function (units) {
             units = normalizeUnits(units);
-            return this.startOf(units).add((units === 'isoWeek' ? 'week' : units), 1).subtract('ms', 1);
+            return this.startOf(units).add(1, (units === 'isoWeek' ? 'week' : units)).subtract(1, 'ms');
         },
 
         isAfter: function (input, units) {
@@ -2320,7 +2342,7 @@
 
         dayOfYear : function (input) {
             var dayOfYear = round((moment(this).startOf('day') - moment(this).startOf('year')) / 864e5) + 1;
-            return input == null ? dayOfYear : this.add('d', (input - dayOfYear));
+            return input == null ? dayOfYear : this.add((input - dayOfYear), 'd');
         },
 
         quarter : function (input) {
@@ -2328,28 +2350,28 @@
         },
 
         weekYear : function (input) {
-            var year = weekOfYear(this, this.lang()._week.dow, this.lang()._week.doy).year;
-            return input == null ? year : this.add('y', (input - year));
+            var year = weekOfYear(this, this.localeData()._week.dow, this.localeData()._week.doy).year;
+            return input == null ? year : this.add((input - year), 'y');
         },
 
         isoWeekYear : function (input) {
             var year = weekOfYear(this, 1, 4).year;
-            return input == null ? year : this.add('y', (input - year));
+            return input == null ? year : this.add((input - year), 'y');
         },
 
         week : function (input) {
-            var week = this.lang().week(this);
-            return input == null ? week : this.add('d', (input - week) * 7);
+            var week = this.localeData().week(this);
+            return input == null ? week : this.add((input - week) * 7, 'd');
         },
 
         isoWeek : function (input) {
             var week = weekOfYear(this, 1, 4).week;
-            return input == null ? week : this.add('d', (input - week) * 7);
+            return input == null ? week : this.add((input - week) * 7, 'd');
         },
 
         weekday : function (input) {
-            var weekday = (this.day() + 7 - this.lang()._week.dow) % 7;
-            return input == null ? weekday : this.add('d', input - weekday);
+            var weekday = (this.day() + 7 - this.localeData()._week.dow) % 7;
+            return input == null ? weekday : this.add(input - weekday, 'd');
         },
 
         isoWeekday : function (input) {
@@ -2364,7 +2386,7 @@
         },
 
         weeksInYear : function () {
-            var weekInfo = this._lang._week;
+            var weekInfo = this.localeData()._week;
             return weeksInYear(this.year(), weekInfo.dow, weekInfo.doy);
         },
 
@@ -2381,16 +2403,27 @@
             return this;
         },
 
-        // If passed a language key, it will set the language for this
-        // instance.  Otherwise, it will return the language configuration
+        // If passed a locale key, it will set the locale for this
+        // instance.  Otherwise, it will return the locale configuration
         // variables for this instance.
-        lang : function (key) {
+        locale : function (key) {
             if (key === undefined) {
-                return this._lang;
+                return this._locale._abbr;
             } else {
-                this._lang = getLangDefinition(key);
+                this._locale = moment.localeData(key);
                 return this;
             }
+        },
+
+        lang : deprecate(
+            "moment().lang() is deprecated. Use moment().localeData() instead.",
+            function (key) {
+                return this.localeData(key);
+            }
+        ),
+
+        localeData : function () {
+            return this._locale;
         }
     });
 
@@ -2399,7 +2432,7 @@
 
         // TODO: Move this out of here!
         if (typeof value === 'string') {
-            value = mom.lang().monthsParse(value);
+            value = mom.localeData().monthsParse(value);
             // TODO: Another silent failure?
             if (typeof value !== 'number') {
                 return mom;
@@ -2545,13 +2578,13 @@
         },
 
         humanize : function (withSuffix) {
-            var output = relativeTime(this, !withSuffix, this.lang());
+            var output = relativeTime(this, !withSuffix, this.localeData());
 
             if (withSuffix) {
-                output = this.lang().pastFuture(+this, output);
+                output = this.localeData().pastFuture(+this, output);
             }
 
-            return this.lang().postformat(output);
+            return this.localeData().postformat(output);
         },
 
         add : function (input, val) {
@@ -2607,8 +2640,17 @@
         },
 
         lang : moment.fn.lang,
+        locale : moment.fn.locale,
 
-        toIsoString : function () {
+        toIsoString : deprecate(
+            "toIsoString() is deprecated. Please use toISOString() instead " +
+            "(notice the capitals)",
+            function () {
+                return this.toISOString();
+            }
+        ),
+
+        toISOString : function () {
             // inspired by https://github.com/dordille/moment-isoduration/blob/master/moment.isoduration.js
             var years = Math.abs(this.years()),
                 months = Math.abs(this.months()),
@@ -2632,6 +2674,10 @@
                 (hours ? hours + 'H' : '') +
                 (minutes ? minutes + 'M' : '') +
                 (seconds ? seconds + 'S' : '');
+        },
+
+        localeData : function () {
+            return this._locale;
         }
     });
 
@@ -2673,12 +2719,12 @@
     };
 
     /************************************
-        Default Lang
+        Default Locale
     ************************************/
 
 
-    // Set default language, other languages will inherit from English.
-    moment.lang('en', {
+    // Set default locale, other locale will inherit from English.
+    moment.locale('en', {
         ordinal : function (number) {
             var b = number % 10,
                 output = (toInt(number % 100 / 10) === 1) ? 'th' :
@@ -2689,7 +2735,7 @@
         }
     });
 
-    /* EMBED_LANGUAGES */
+    /* EMBED_LOCALES */
 
     /************************************
         Exposing Moment

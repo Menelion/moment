@@ -284,12 +284,17 @@ exports.duration = {
 
     "serialization to ISO 8601 duration strings" : function (test) {
         test.expect(6);
-        test.equal(moment.duration({y: 1, M: 2, d: 3, h: 4, m: 5, s: 6}).toIsoString(), "P1Y2M3DT4H5M6S", "all fields");
-        test.equal(moment.duration({M: -1}).toIsoString(), "-P1M", "one month ago");
-        test.equal(moment.duration({m: -1}).toIsoString(), "-PT1M", "one minute ago");
-        test.equal(moment.duration({s: -0.5}).toIsoString(), "-PT0.5S", "one half second ago");
-        test.equal(moment.duration({y: -0.5, M: 1}).toIsoString(), "-P5M", "a month after half a year ago");
-        test.equal(moment.duration({}).toIsoString(), "P0D", "zero duration");
+        test.equal(moment.duration({y: 1, M: 2, d: 3, h: 4, m: 5, s: 6}).toISOString(), "P1Y2M3DT4H5M6S", "all fields");
+        test.equal(moment.duration({M: -1}).toISOString(), "-P1M", "one month ago");
+        test.equal(moment.duration({m: -1}).toISOString(), "-PT1M", "one minute ago");
+        test.equal(moment.duration({s: -0.5}).toISOString(), "-PT0.5S", "one half second ago");
+        test.equal(moment.duration({y: -0.5, M: 1}).toISOString(), "-P5M", "a month after half a year ago");
+        test.equal(moment.duration({}).toISOString(), "P0D", "zero duration");
+        test.done();
+    },
+
+    "toIsoString deprecation" : function (test) {
+        test.equal(moment.duration({}).toIsoString(), moment.duration({}).toISOString(), "toIsoString delegates to toISOString");
         test.done();
     },
 
@@ -337,7 +342,7 @@ exports.duration = {
 
     "humanize" : function (test) {
         test.expect(32);
-        moment.lang('en');
+        moment.locale('en');
         test.equal(moment.duration({seconds: 44}).humanize(),  "a few seconds", "44 seconds = a few seconds");
         test.equal(moment.duration({seconds: 45}).humanize(),  "a minute",      "45 seconds = a minute");
         test.equal(moment.duration({seconds: 89}).humanize(),  "a minute",      "89 seconds = a minute");
@@ -375,7 +380,7 @@ exports.duration = {
 
     "humanize duration with suffix" : function (test) {
         test.expect(2);
-        moment.lang('en');
+        moment.locale('en');
         test.equal(moment.duration({seconds:  44}).humanize(true),  "in a few seconds", "44 seconds = a few seconds");
         test.equal(moment.duration({seconds: -44}).humanize(true),  "a few seconds ago", "44 seconds = a few seconds");
         test.done();

@@ -42,7 +42,7 @@ var moment = require("../../moment"),
 
 exports.preparsePostformat = {
     setUp: function (cb) {
-        moment.lang('symbol', symbolLang);
+        moment.locale('symbol', symbolLang);
         moment.createFromInputFallback = function () {
             throw new Error("input not handled by moment");
         };
@@ -51,7 +51,7 @@ exports.preparsePostformat = {
     },
 
     tearDown: function (cb) {
-        moment.lang('en-gb');
+        moment.locale('en-gb');
         cb();
     },
 
@@ -71,7 +71,7 @@ exports.preparsePostformat = {
         var start = moment([2007, 1, 28]);
 
         test.equal(start.from(moment([2007, 1, 28]).add({s: 90}), true), "@ minutes", "postformat should work on moment.fn.from");
-        test.equal(moment().add('d', 6).fromNow(true), "^ days", "postformat should work on moment.fn.fromNow");
+        test.equal(moment().add(6, 'd').fromNow(true), "^ days", "postformat should work on moment.fn.fromNow");
         test.equal(moment.duration(10, "h").humanize(), "!) hours", "postformat should work on moment.duration.fn.humanize");
 
         test.done();
