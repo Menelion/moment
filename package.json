@@ -1,6 +1,6 @@
 {
     "name": "moment",
-    "version": "2.7.0",
+    "version": "2.8.3",
     "description": "Parse, manipulate, and display dates.",
     "homepage": "http://momentjs.com",
     "author": "Iskren Ivov Chernev <iskren.chernev@gmail.com> (https://github.com/ichernev)",
@@ -33,9 +33,9 @@
     "bugs": {
         "url": "https://github.com/moment/moment/issues"
     },
-    "licenses" : [
+    "licenses": [
         {
-            "type" : "MIT"
+            "type": "MIT"
         }
     ],
     "devDependencies": {
@@ -51,22 +51,25 @@
         "grunt-env": "latest",
         "grunt-jscs": "latest",
         "grunt-karma": "latest",
-        "grunt-benchmark" : "latest",
-        "grunt-string-replace" : "latest",
+        "grunt-benchmark": "latest",
+        "grunt-string-replace": "latest",
         "load-grunt-tasks": "latest",
         "karma": "latest",
         "karma-chrome-launcher": "latest",
         "karma-firefox-launcher": "latest",
         "karma-nodeunit": "latest",
         "karma-sauce-launcher": "latest"
-  },
+    },
     "scripts": {
         "test": "grunt test:node"
     },
     "ender": "./ender.js",
     "dojoBuild": "package.js",
     "jspm": {
-        "files": ["moment.js", "locale"],
+        "files": [
+            "moment.js",
+            "locale"
+        ],
         "map": {
             "moment": "./moment"
         },
@@ -77,76 +80,7 @@
     "spm": {
         "main": "moment.js",
         "output": [
-            "locale/ar-ma.js",
-            "locale/ar.js",
-            "locale/bg.js",
-            "locale/br.js",
-            "locale/bs.js",
-            "locale/ca.js",
-            "locale/cs.js",
-            "locale/cv.js",
-            "locale/cy.js",
-            "locale/da.js",
-            "locale/de.js",
-            "locale/el.js",
-            "locale/en-au.js",
-            "locale/en-ca.js",
-            "locale/en-gb.js",
-            "locale/eo.js",
-            "locale/es.js",
-            "locale/et.js",
-            "locale/eu.js",
-            "locale/fa.js",
-            "locale/fi.js",
-            "locale/fo.js",
-            "locale/fr-ca.js",
-            "locale/fr.js",
-            "locale/gl.js",
-            "locale/he.js",
-            "locale/hi.js",
-            "locale/hr.js",
-            "locale/hu.js",
-            "locale/hy-am.js",
-            "locale/id.js",
-            "locale/is.js",
-            "locale/it.js",
-            "locale/ja.js",
-            "locale/ka.js",
-            "locale/km.js",
-            "locale/ko.js",
-            "locale/lb.js",
-            "locale/lt.js",
-            "locale/lv.js",
-            "locale/mk.js",
-            "locale/ml.js",
-            "locale/mr.js",
-            "locale/ms-my.js",
-            "locale/nb.js",
-            "locale/ne.js",
-            "locale/nl.js",
-            "locale/nn.js",
-            "locale/pl.js",
-            "locale/pt-br.js",
-            "locale/pt.js",
-            "locale/ro.js",
-            "locale/ru.js",
-            "locale/sk.js",
-            "locale/sl.js",
-            "locale/sq.js",
-            "locale/sr-cyr.js",
-            "locale/sr.js",
-            "locale/sv.js",
-            "locale/ta.js",
-            "locale/th.js",
-            "locale/tl-ph.js",
-            "locale/tr.js",
-            "locale/tzm-la.js",
-            "locale/tzm.js",
-            "locale/uk.js",
-            "locale/uz.js",
-            "locale/vi.js",
-            "locale/zh-cn.js",
-            "locale/zh-tw.js"
+            "locale/*.js"
         ]
     }
 }

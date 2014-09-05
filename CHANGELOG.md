@@ -1,6 +1,58 @@
 Changelog
 =========
 
+### 2.8.3
+
+Bugfixes:
+
+* [#1801](https://github.com/moment/moment/issues/1801) proper pluralization for Arabic
+* [#1833](https://github.com/moment/moment/issues/1833) improve spm integration
+* [#1871](https://github.com/moment/moment/issues/1871) fix zone bug caused by Firefox 24
+* [#1882](https://github.com/moment/moment/issues/1882) Use hh:mm in Czech
+* [#1883](https://github.com/moment/moment/issues/1883) Fix 2.8.0 regression in duration as conversions
+* [#1890](https://github.com/moment/moment/issues/1890) Faster travis builds
+* [#1892](https://github.com/moment/moment/issues/1892) Faster isBefore/After/Same
+* [#1848](https://github.com/moment/moment/issues/1848) Fix flaky month diffs
+* [#1895](https://github.com/moment/moment/issues/1895) Fix 2.8.0 regression in moment.utc with format array
+* [#1896](https://github.com/moment/moment/issues/1896) Support setting invalid instance locale (noop)
+* [#1897](https://github.com/moment/moment/issues/1897) Support moment([str]) in addition to moment([int])
+
+### 2.8.2
+
+Minor bugfixes:
+
+* [#1874](https://github.com/moment/moment/issues/1874) use `Object.prototype.hasOwnProperty`
+  instead of `obj.hasOwnProperty` (ie8 bug)
+* [#1873](https://github.com/moment/moment/issues/1873) add `duration#toString()`
+* [#1859](https://github.com/moment/moment/issues/1859) better month/weekday names in norwegian
+* [#1812](https://github.com/moment/moment/issues/1812) meridiem parsing for greek
+* [#1804](https://github.com/moment/moment/issues/1804) spanish del -> de
+* [#1800](https://github.com/moment/moment/issues/1800) korean LT improvement
+
+### 2.8.1
+
+* bugfix [#1813](https://github.com/moment/moment/issues/1813): fix moment().lang([key]) incompatibility
+
+### 2.8.0 [See changelog](https://gist.github.com/ichernev/ac3899324a5fa6c8c9b4)
+
+* incompatible changes
+    * [#1761](https://github.com/moment/moment/issues/1761): moments created without a language are no longer following the global language, in case it changes. Only newly created moments take the global language by default. In case you're affected by this, wait, comment on [#1797](https://github.com/moment/moment/issues/1797) and wait for a proper reimplementation
+    * [#1642](https://github.com/moment/moment/issues/1642): 45 days is no longer "a month" according to humanize, cutoffs for month, and year have changed. Hopefully your code does not depend on a particular answer from humanize (which it shouldn't anyway)
+    * [#1784](https://github.com/moment/moment/issues/1784): if you use the human readable English datetime format in a weird way (like storing them in a database) that would break when the format changes you're at risk.
+
+* deprecations (old behavior will be dropped in 3.0)
+    * [#1761](https://github.com/moment/moment/issues/1761) `lang` is renamed to `locale`, `langData` -> `localeData`. Also there is now `defineLocale` that should be used when creating new locales
+    * [#1763](https://github.com/moment/moment/issues/1763) `add(unit, value)` and `subtract(unit, value)` are now deprecated. Use `add(value, unit)` and `subtract(value, unit)` instead.
+    * [#1759](https://github.com/moment/moment/issues/1759) rename `duration.toIsoString` to `duration.toISOString`. The js standard library and moment's `toISOString` follow that convention.
+
+* new locales
+    * [#1789](https://github.com/moment/moment/issues/1789) Tibetan (bo)
+    * [#1786](https://github.com/moment/moment/issues/1786) Africaans (af)
+    * [#1778](https://github.com/moment/moment/issues/1778) Burmese (my)
+    * [#1727](https://github.com/moment/moment/issues/1727) Belarusian (be)
+
+* bugfixes, locale bugfixes, performance improvements, features
+
 ### 2.7.0 [See changelog](https://gist.github.com/ichernev/b0a3d456d5a84c9901d7)
 
 * new languages
