@@ -1,6 +1,6 @@
 {
     "name": "moment",
-    "version": "2.8.3",
+    "version": "2.8.4",
     "description": "Parse, manipulate, and display dates.",
     "homepage": "http://momentjs.com",
     "author": "Iskren Ivov Chernev <iskren.chernev@gmail.com> (https://github.com/ichernev)",
@@ -49,7 +49,7 @@
         "grunt-contrib-uglify": "latest",
         "grunt-contrib-watch": "latest",
         "grunt-env": "latest",
-        "grunt-jscs": "latest",
+        "grunt-jscs": "0.7.1",
         "grunt-karma": "latest",
         "grunt-benchmark": "latest",
         "grunt-string-replace": "latest",
