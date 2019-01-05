@@ -1,4 +1,4 @@
-import { test, expect } from '../qunit';
+import { test } from '../qunit';
 import each from './each';
 import objectKeys from './object-keys';
 import moment from '../../moment';
@@ -74,22 +74,26 @@ export function defineCommonLocaleTests(locale, options) {
 
         if (locale === 'tr') {
             // I can't fix it :(
-            expect(0);
+            assert.expect(0);
             return;
         }
         function tester(format) {
             var r;
             r = moment(m.format(format), format);
             assert.equal(r.month(), m.month(), 'month ' + i + ' fmt ' + format);
-            r = moment(m.format(format).toLocaleUpperCase(), format);
-            assert.equal(r.month(), m.month(), 'month ' + i + ' fmt ' + format + ' upper');
+            if (locale !== 'ka') {
+                r = moment(m.format(format).toLocaleUpperCase(), format);
+                assert.equal(r.month(), m.month(), 'month ' + i + ' fmt ' + format + ' upper');
+            }
             r = moment(m.format(format).toLocaleLowerCase(), format);
             assert.equal(r.month(), m.month(), 'month ' + i + ' fmt ' + format + ' lower');
 
             r = moment(m.format(format), format, true);
             assert.equal(r.month(), m.month(), 'month ' + i + ' fmt ' + format + ' strict');
-            r = moment(m.format(format).toLocaleUpperCase(), format, true);
-            assert.equal(r.month(), m.month(), 'month ' + i + ' fmt ' + format + ' upper strict');
+            if (locale !== 'ka') {
+                r = moment(m.format(format).toLocaleUpperCase(), format, true);
+                assert.equal(r.month(), m.month(), 'month ' + i + ' fmt ' + format + ' upper strict');
+            }
             r = moment(m.format(format).toLocaleLowerCase(), format, true);
             assert.equal(r.month(), m.month(), 'month ' + i + ' fmt ' + format + ' lower strict');
         }
@@ -106,26 +110,30 @@ export function defineCommonLocaleTests(locale, options) {
     test('weekday parsing correctness', function (assert) {
         var i, m;
 
-        if (locale === 'tr' || locale === 'az' || locale === 'ro') {
+        if (locale === 'tr' || locale === 'az' || locale === 'ro' || locale === 'mt') {
             // tr, az: There is a lower-case letter (ı), that converted to
             // upper then lower changes to i
             // ro: there is the letter ț which behaves weird under IE8
-            expect(0);
+            // mt: letter Ħ
+            assert.expect(0);
             return;
         }
         function tester(format) {
             var r, baseMsg = 'weekday ' + m.weekday() + ' fmt ' + format + ' ' + m.toISOString();
             r = moment(m.format(format), format);
             assert.equal(r.weekday(), m.weekday(), baseMsg);
-            r = moment(m.format(format).toLocaleUpperCase(), format);
-            assert.equal(r.weekday(), m.weekday(), baseMsg + ' upper');
+            if (locale !== 'ka') {
+                r = moment(m.format(format).toLocaleUpperCase(), format);
+                assert.equal(r.weekday(), m.weekday(), baseMsg + ' upper');
+            }
             r = moment(m.format(format).toLocaleLowerCase(), format);
             assert.equal(r.weekday(), m.weekday(), baseMsg + ' lower');
-
             r = moment(m.format(format), format, true);
             assert.equal(r.weekday(), m.weekday(), baseMsg + ' strict');
-            r = moment(m.format(format).toLocaleUpperCase(), format, true);
-            assert.equal(r.weekday(), m.weekday(), baseMsg + ' upper strict');
+            if (locale !== 'ka') {
+                r = moment(m.format(format).toLocaleUpperCase(), format, true);
+                assert.equal(r.weekday(), m.weekday(), baseMsg + ' upper strict');
+            }
             r = moment(m.format(format).toLocaleLowerCase(), format, true);
             assert.equal(r.weekday(), m.weekday(), baseMsg + ' lower strict');
         }

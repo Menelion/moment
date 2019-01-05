@@ -1,6 +1,8 @@
 /// <reference path="../moment.d.ts" />
 import moment = require('../moment');
 
+moment.parseTwoDigitYear("50");
+
 moment().add('hours', 1).fromNow();
 
 var day = new Date(2011, 9, 16);
@@ -200,6 +202,11 @@ a8.diff(b8, 'days');
 a8.diff(b8, 'years')
 a8.diff(b8, 'years', true);
 
+moment.min([a8, b8]);
+moment.min(a8, b8);
+moment.max([a8, b8]);
+moment.max(a8, b8);
+
 moment([2007, 0, 29]).toDate();
 moment([2007, 1, 23]).toISOString();
 moment(1318874398806).valueOf();
@@ -222,6 +229,7 @@ moment.isDuration(moment.duration());
 moment().isBetween(moment(), moment());
 moment().isBetween(new Date(), new Date());
 moment().isBetween([1,1,2000], [1,1,2001], "year");
+moment().isBetween([1,1,2000], [1,1,2001], null, "()");
 
 moment.localeData('fr');
 moment(1316116057189).fromNow();
@@ -256,6 +264,7 @@ moment.duration({
     M: 2,
     y: 2,
 });
+moment.duration(1, "minute").clone();
 moment.duration(1, "minutes").humanize();
 moment.duration(500).milliseconds();
 moment.duration(500).asMilliseconds();
@@ -301,6 +310,7 @@ moment.locale('en', {
         future: "in %s",
         past: "%s ago",
         s: "seconds",
+        ss: "%d seconds",
         m: "a minute",
         mm: "%d minutes",
         h: "an hour",
@@ -445,6 +455,7 @@ moment.locale('en', {
         future: "in %s",
         past:   "%s ago",
         s:  "seconds",
+        ss: "%d seconds",
         m:  "a minute",
         mm: "%d minutes",
         h:  "an hour",
