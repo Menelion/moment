@@ -1,7 +1,7 @@
 import {test} from '../qunit';
 import {localeModule} from '../qunit-locale';
 import moment from '../../moment';
-localeModule('en-au');
+localeModule('en-sg');
 
 test('parse', function (assert) {
     var tests = 'January Jan_February Feb_March Mar_April Apr_May May_June Jun_July Jul_August Aug_September Sep_October Oct_November Nov_December Dec'.split('_'), i;
@@ -37,15 +37,15 @@ test('format', function (assert) {
             ['s ss',                               '50 50'],
             ['a A',                                'pm PM'],
             ['[the] DDDo [day of the year]',       'the 45th day of the year'],
-            ['LTS',                                '3:25:50 PM'],
+            ['LTS',                                '15:25:50'],
             ['L',                                  '14/02/2010'],
             ['LL',                                 '14 February 2010'],
-            ['LLL',                                '14 February 2010 3:25 PM'],
-            ['LLLL',                               'Sunday, 14 February 2010 3:25 PM'],
+            ['LLL',                                '14 February 2010 15:25'],
+            ['LLLL',                               'Sunday, 14 February 2010 15:25'],
             ['l',                                  '14/2/2010'],
             ['ll',                                 '14 Feb 2010'],
-            ['lll',                                '14 Feb 2010 3:25 PM'],
-            ['llll',                               'Sun, 14 Feb 2010 3:25 PM']
+            ['lll',                                '14 Feb 2010 15:25'],
+            ['llll',                               'Sun, 14 Feb 2010 15:25']
         ],
         b = moment(new Date(2010, 1, 14, 15, 25, 50, 125)),
         i;
@@ -154,12 +154,12 @@ test('fromNow', function (assert) {
 test('calendar day', function (assert) {
     var a = moment().hours(12).minutes(0).seconds(0);
 
-    assert.equal(moment(a).calendar(),                   'Today at 12:00 PM',     'today at the same time');
-    assert.equal(moment(a).add({m: 25}).calendar(),      'Today at 12:25 PM',     'Now plus 25 min');
-    assert.equal(moment(a).add({h: 1}).calendar(),       'Today at 1:00 PM',      'Now plus 1 hour');
-    assert.equal(moment(a).add({d: 1}).calendar(),       'Tomorrow at 12:00 PM',  'tomorrow at the same time');
-    assert.equal(moment(a).subtract({h: 1}).calendar(),  'Today at 11:00 AM',     'Now minus 1 hour');
-    assert.equal(moment(a).subtract({d: 1}).calendar(),  'Yesterday at 12:00 PM', 'yesterday at the same time');
+    assert.equal(moment(a).calendar(),                   'Today at 12:00',      'today at the same time');
+    assert.equal(moment(a).add({m: 25}).calendar(),      'Today at 12:25',      'Now plus 25 min');
+    assert.equal(moment(a).add({h: 1}).calendar(),       'Today at 13:00',      'Now plus 1 hour');
+    assert.equal(moment(a).add({d: 1}).calendar(),       'Tomorrow at 12:00',   'tomorrow at the same time');
+    assert.equal(moment(a).subtract({h: 1}).calendar(),  'Today at 11:00',      'Now minus 1 hour');
+    assert.equal(moment(a).subtract({d: 1}).calendar(),  'Yesterday at 12:00',  'yesterday at the same time');
 });
 
 test('calendar next week', function (assert) {
@@ -209,30 +209,3 @@ test('weeks year starting sunday formatted', function (assert) {
     assert.equal(moment([2012, 0, 15]).format('w ww wo'),   '2 02 2nd', 'Jan 15 2012 should be week 2');
 });
 
-// Concrete test for Locale#weekdaysMin
-test('Weekdays sort by locale', function (assert) {
-    assert.deepEqual(
-        moment().localeData('en-au').weekdays(),
-        'Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday'.split('_'),
-        'weekdays start on Sunday');
-    assert.deepEqual(
-        moment().localeData('en-au').weekdays(true),
-        'Monday_Tuesday_Wednesday_Thursday_Friday_Saturday_Sunday'.split('_'),
-        'locale-sorted weekdays start on Monday');
-    assert.deepEqual(
-        moment().localeData('en-au').weekdaysShort(),
-        'Sun_Mon_Tue_Wed_Thu_Fri_Sat'.split('_'),
-        'weekdaysShort start on Sunday');
-    assert.deepEqual(
-        moment().localeData('en-au').weekdaysShort(true),
-        'Mon_Tue_Wed_Thu_Fri_Sat_Sun'.split('_'),
-        'locale-sorted weekdaysShort start on Monday');
-    assert.deepEqual(
-        moment().localeData('en-au').weekdaysMin(),
-        'Su_Mo_Tu_We_Th_Fr_Sa'.split('_'),
-        'weekdaysMin start on Sunday');
-    assert.deepEqual(
-        moment().localeData('en-au').weekdaysMin(true),
-        'Mo_Tu_We_Th_Fr_Sa_Su'.split('_'),
-        'locale-sorted weekdaysMin start on Monday');
-});
